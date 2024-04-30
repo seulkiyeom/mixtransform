@@ -58,6 +58,8 @@ from .vision_transformer import VisionTransformer
 from .vit_eva02 import ViTEVA02
 from .vit_sam import ViTSAM
 from .xcit import XCiT
+from .efficientvit import EfficientViT
+from .mixvit import MixViT
 
 __all__ = [
     'LeNet5',
@@ -126,4 +128,6 @@ __all__ = [
     'HiViT',
     'SparseResNet',
     'SparseConvNeXt',
+    'EfficientViT',
+    'MixViT'
 ]

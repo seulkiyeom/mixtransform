@@ -129,6 +129,10 @@ venv.bak/
 /projects/*/data
 /mmpretrain/.mim
 .DS_Store
+outfile
+checkpoints
+
+
 
 # Pytorch
 *.pth

@@ -1,3 +1,18 @@
+# MixTransform
+
+## Pruning + Finetuning
+
+```shell
+bash ./tools/dist_prune.sh CONFIG_PATH PRETRAINED_MODEL_PATH GPU_NUM
+bash ./tools/dist_prune.sh configs/mixvit/mixvit-m1_8xb32_in1k.py work_dirs/mixvit-m1_8xb32_in1k/20240422_145707/epoch_100.pth 2
+```
+
+## Inference with Pruned Model
+```shell
+bash ./tools/dist_prune_test.sh CONFIG_PATH PRUNED_MODEL_PATH GPU_NUM --pruned
+bash ./tools/dist_prune_test.sh configs/mixvit/mixvit-m1_8xb32_in1k.py work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth 2 --pruned
+```
+<!-- 
 <div align="center">
 
 <img src="resources/mmpt-logo.png" width="600"/>
@@ -61,11 +76,6 @@ English | [简体中文](/README_zh-CN.md)
     <img src="https://user-images.githubusercontent.com/25839884/219026120-ba71e48b-6e94-4bd4-b4e9-b7d175b5e362.png" width="3%" alt="" /></a>
 </div>
 
-## Introduction
-
-MMPreTrain is an open source pre-training toolbox based on PyTorch. It is a part of the [OpenMMLab](https://openmmlab.com/) project.
-
-The `main` branch works with **PyTorch 1.8+**.
 
 ### Major features
 
@@ -336,4 +346,4 @@ This project is released under the [Apache 2.0 license](LICENSE).
 - [MMagic](https://github.com/open-mmlab/mmagic): Open**MM**Lab **A**dvanced, **G**enerative and **I**ntelligent **C**reation toolbox.
 - [MMGeneration](https://github.com/open-mmlab/mmgeneration): OpenMMLab image and video generative models toolbox.
 - [MMDeploy](https://github.com/open-mmlab/mmdeploy): OpenMMLab model deployment framework.
-- [Playground](https://github.com/open-mmlab/playground): A central hub for gathering and showcasing amazing projects built upon OpenMMLab.
+- [Playground](https://github.com/open-mmlab/playground): A central hub for gathering and showcasing amazing projects built upon OpenMMLab. -->

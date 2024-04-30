@@ -74,6 +74,10 @@ def test_timm_backbone():
     # Disable the test since TIMM's behavior changes between 0.5.4 and 0.5.5
     # assert feat[0].shape == torch.Size((1, 197, 192))
 
+    model = TIMMBackbone(model_name='efficientvit_m4', pretrained=True)
+    model.init_weights()
+    model.train()
+
 
 @unittest.skipIf(not has_timm(), 'timm is not installed')
 def test_timm_backbone_features_only():
@@ -214,3 +218,6 @@ def test_timm_backbone_features_only():
     assert feats[2].shape == torch.Size((1, 512, 1, 1))
     assert feats[3].shape == torch.Size((1, 1024, 1, 1))
     assert feats[4].shape == torch.Size((1, 2048, 1, 1))
+
+if __name__ == '__main__':
+    test_timm_backbone()
