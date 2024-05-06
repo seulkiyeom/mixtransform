@@ -64,10 +64,10 @@ class BottleneckReader():
         for i in range(len(self.bottlenecks)):
             replace_layer(self.model.backbone, self.original_layers[i], self.sequentials[i]) #bottleneck 싹다 넣어주고
         
-        # self._train_bottleneck() #training 시작
+        self._train_bottleneck() #training 시작
 
-        # return self.best_attribution_score
-        return 0
+        return self.best_attribution_score
+        # return 0
     
     def remove_layer(self):
         for i in range(len(self.bottlenecks)):

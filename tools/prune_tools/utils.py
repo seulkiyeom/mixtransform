@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from prune_tools.arch_modif import prune_layer
+from tools.prune_tools.arch_modif import prune_layer
 from mmengine.model import ModuleList, Sequential
 
 def get_flops(module_type, info, lamb_in=None, lamb_out=None, train=True):

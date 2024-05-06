@@ -1,12 +1,9 @@
 # Copyright (c) Nota AI GmbH. All rights reserved.
-from typing import Sequence, Tuple
 import itertools
 from collections import OrderedDict
 
 import torch
 import torch.nn as nn
-import torch.utils.checkpoint as checkpoint
-from mmcv.cnn.bricks import DropPath, build_activation_layer, build_norm_layer
 from mmengine.model import BaseModule, ModuleList, Sequential
 from torch.nn import functional as F
 from mmpretrain.models.utils import SELayer
@@ -76,13 +73,13 @@ class ConvBN2d(Sequential):
             (bn2d.running_var + bn2d.eps)**0.5
 
         m = nn.Conv2d(
-            in_channels=w.size(1) * self.c.groups,
+            in_channels=w.size(1) * self.conv.groups,
             out_channels=w.size(0),
             kernel_size=w.shape[2:],
-            stride=self.conv2d.stride,
-            padding=self.conv2d.padding,
-            dilation=self.conv2d.dilation,
-            groups=self.conv2d.groups)
+            stride=self.conv.stride,
+            padding=self.conv.padding,
+            dilation=self.conv.dilation,
+            groups=self.conv.groups)
         m.weight.data.copy_(w)
         m.bias.data.copy_(b)
         return m
@@ -161,7 +158,7 @@ class CascadedGroupAttention(BaseModule):
             num_heads=8,
             attn_ratio=4,
             resolution=14,
-            kernels=(5, 5, 5, 5),
+            kernels=(1, 3, 5, 8),
             init_cfg=None
         ):
         super().__init__(init_cfg=init_cfg)
@@ -174,11 +171,11 @@ class CascadedGroupAttention(BaseModule):
         self.qkvs = ConvBN2d(dim, dim // 2)
         self.dws = ConvBN2d(dim // 4, dim // 4, kernels[0], 1, kernels[0]//2, groups=dim // 4)
 
-        ks = [1, 3, 5, 5] #Depthwise 방식? 좋지 못한듯 (reuse_depthwise.txt 참고)
+        # ks = [1, 3, 5, 5] #Depthwise 방식? 좋지 못한듯 (reuse_depthwise.txt 참고)
         self.split_out_channels = self.split_layer(dim) #Depth-wise Conv 적용 (without Pointwise Conv)
         mix = []
         for idx in range(num_heads):
-            kernel_size = ks[idx]
+            kernel_size = kernels[idx]
             pad = (kernel_size - 1) // 2
             assert self.split_out_channels[idx] == self.d
             #Depthwise Convolution: Spatial feature learning
@@ -438,6 +435,12 @@ class EfficientVitStage(torch.nn.Module):
         x = self.blocks(x)
         return x
     
+def fuse_parameters(module):
+    for child_name, child in module.named_children():
+        if hasattr(child, 'fuse'):
+            setattr(module, child_name, child.fuse())
+        else:
+            fuse_parameters(child)
 
 @MODELS.register_module()
 class MixViT(BaseBackbone):
@@ -448,7 +451,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 2, 3],
             'num_heads': [4, 4, 4],
             'window_size': [7, 7, 7],
-            'kernels': [5, 5, 5, 5]
+            'kernels': [1, 3, 5, 7]
         },
         'm1': {
             'img_size': 224,
@@ -456,7 +459,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 2, 3],
             'num_heads': [2, 3, 3],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 3]
+            'kernels': [1, 3, 5, 7]
         },
         'm2': {
             'img_size': 224,
@@ -464,7 +467,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 2, 3],
             'num_heads': [4, 3, 2],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 3]
+            'kernels': [1, 3, 5, 7]
         },
         'm3': {
             'img_size': 224,
@@ -472,7 +475,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 2, 3],
             'num_heads': [4, 3, 4],
             'window_size': [7, 7, 7],
-            'kernels': [5, 5, 5, 5]
+            'kernels': [1, 3, 5, 7]
         },
         'm4': {
             'img_size': 224,
@@ -480,7 +483,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 2, 3],
             'num_heads': [4, 4, 4],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 3]
+            'kernels': [1, 3, 5, 7]
         },
         'm5': {
             'img_size': 224,
@@ -488,7 +491,7 @@ class MixViT(BaseBackbone):
             'depth': [1, 3, 4],
             'num_heads': [3, 3, 4],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 3]
+            'kernels': [1, 3, 5, 7]
         },
     }
 
@@ -501,6 +504,7 @@ class MixViT(BaseBackbone):
             down_ops=(('', 1), ('subsample', 2), ('subsample', 2)),
             global_pool='avg',
             drop_rate=0.,
+            deploy=False,
             init_cfg=None
     ):
         super(MixViT, self).__init__(init_cfg=init_cfg)
@@ -559,13 +563,17 @@ class MixViT(BaseBackbone):
             self.feature_info += [dict(num_chs=ed, reduction=stride, module=f'stages.{i}')]
         self.stages = Sequential(*stages)
 
-        if global_pool == 'avg':
-            self.global_pool = nn.AdaptiveAvgPool2d(1)
-            self.flatten = nn.Flatten(1)
-        else:
-            assert num_classes == 0
-            self.global_pool = nn.Identity()
+        # if global_pool == 'avg':
+        #     self.global_pool = nn.AdaptiveAvgPool2d(1)
+        #     self.flatten = nn.Flatten(1)
+        # else:
+        #     assert num_classes == 0
+        #     self.global_pool = nn.Identity()
         self.num_features = embed_dim[-1]
+
+        self.deploy = False
+        if deploy:
+            self.switch_to_deploy()
 
     @torch.jit.ignore
     def no_weight_decay(self):
@@ -590,22 +598,18 @@ class MixViT(BaseBackbone):
     # def get_classifier(self):
     #     return self.head.linear
 
-    # def reset_classifier(self, num_classes, global_pool=None):
-    #     self.num_classes = num_classes
-        # if global_pool is not None:
-        #     if global_pool == 'avg':
-        #         self.global_pool = torch.nn.functional.adaptive_avg_pool2d()
-        #     else:
-        #         assert num_classes == 0
-        #         self.global_pool = nn.Identity()
+    def switch_to_deploy(self):
+        if self.deploy:
+            return
+        fuse_parameters(self)
+        self.deploy = True
 
     def forward_features(self, x):
         x = self.patch_embed(x)
         x = self.stages(x)
-        x = self.flatten(self.global_pool(x))
         out = []
         out.append(x)
-        return out
+        return tuple(out)
 
     # def forward_head(self, x, pre_logits: bool = False):
     #     return x if pre_logits else self.head(x)

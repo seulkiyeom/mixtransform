@@ -1,16 +1,16 @@
 _base_ = [
     '../_base_/models/mixvit.py',
-    '../_base_/datasets/imagenet_bs256.py',
-    '../_base_/schedules/imagenet_bs256.py',
+    '../_base_/datasets/imagenet_bs64_mixtransform_224.py', #'datasets/imagenet_bs256.py',
+    '../_base_/schedules/imagenet_bs1024_adamw_mixtransform.py',  #'schedules/imagenet_bs256.py',
     '../_base_/default_runtime.py',
 ]
 
 randomness = dict(seed=0, diff_rank_seed=True) #seed setup
 
 model = dict(
-    backbone=dict(arch='m0'),
+    backbone=dict(arch='m2'),
     head=dict(
-        in_channels=192,
+        in_channels=224,
     ),
     # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m0.pth')
 )
@@ -29,7 +29,10 @@ test_pipeline = [
     dict(type='PackInputs'),
 ]
 
-train_dataloader = dict(dataset=dict(pipeline=train_pipeline))
+train_dataloader = dict(
+    batch_size=512,
+    dataset=dict(pipeline=train_pipeline)
+)
 val_dataloader = dict(dataset=dict(pipeline=test_pipeline))
 test_dataloader = dict(dataset=dict(pipeline=test_pipeline))
 
@@ -42,9 +45,3 @@ default_hooks = dict(
         interval=20,
         max_keep_ckpts=3,
         rule='greater'))
-
-# custom_hooks = [
-#     dict(
-#         type='Checkpoint_prune',
-#         warmup_epochs=2)
-# ]

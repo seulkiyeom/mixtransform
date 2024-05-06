@@ -3,14 +3,19 @@ Testing the speed of different models
 """
 import os
 import torch
-import torchvision
 import time
-import timm
+import re
+from collections import OrderedDict
+import torch.nn as nn
+from tools.prune_tools.utils import set_in_index_attr_test
 # from model.build import EfficientViT_M0, EfficientViT_M1, EfficientViT_M2, EfficientViT_M3, EfficientViT_M4, EfficientViT_M5
-import torchvision
-import utils
 # from mmpretrain.models.backbones import EfficientViT
 from mmpretrain.models.backbones import MixViT
+# from tools.prune_tools.runner_prune import CustomRunner
+# from mmengine.runner import Runner
+from mmengine.runner.checkpoint import _load_checkpoint, _load_checkpoint_to_model
+from mmengine.model import ModuleList
+from tools.prune_tools.arch_modif import prune_layer
 
 T0 = 10
 T1 = 60
@@ -61,6 +66,32 @@ def replace_batchnorm(net):
         else:
             replace_batchnorm(child)
 
+def load_pruned_model(model, path):
+    checkpoint = _load_checkpoint(path)['state_dict']
+    index_stack = []
+    for name_module, module in model.named_modules():
+        if 'mixer.m.attn.mix' in name_module and not isinstance(module, ModuleList):
+            index_stack += range(checkpoint['backbone.' + name_module + '.weight'].size(0))
+            prune_layer(model, name_module, range(checkpoint['backbone.' + name_module + '.weight'].size(0)), both_prune=True)
+            prune_FFN = True
+            # checkpoint[name_module + '.weight'].size(0)
+
+        elif 'proj' in name_module and isinstance(module, nn.Conv2d) and prune_FFN is True:
+            prune_layer(model, name_module, range(len(index_stack)), both_prune=False)
+            prune_FFN = False
+            index_stack = []
+
+    unpruned_indices = _load_checkpoint(path)['unpruned_indices'].copy()
+    revise_keys: list = [(r'^backbone.', '')]
+
+    for p, r in revise_keys:
+        unpruned_indices = OrderedDict(
+        {re.sub(p, r, k): v
+            for k, v in unpruned_indices.items()})
+        
+    for k, v in unpruned_indices.items():       
+        set_in_index_attr_test(model, k, v)
+
 if __name__ == '__main__':
     torch.autograd.set_grad_enabled(False)
 
@@ -98,6 +129,9 @@ if __name__ == '__main__':
             inputs = torch.randn(batch_size, 3, resolution,
                                 resolution, device=device)
             model = MixViT(arch = n)
+            path = "work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth" #m1 pruned 모델
+            load_pruned_model(model, path)
+
             # replace_batchnorm(model)
             model.to(device)
             model.eval()

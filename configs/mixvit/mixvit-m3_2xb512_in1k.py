@@ -1,25 +1,18 @@
 _base_ = [
     '../_base_/models/mixvit.py',
-    '../_base_/datasets/imagenet_bs256.py',
-    '../_base_/schedules/imagenet_bs256.py',
+    '../_base_/datasets/imagenet_bs64_mixtransform_224.py', #'datasets/imagenet_bs256.py',
+    '../_base_/schedules/imagenet_bs1024_adamw_mixtransform.py',  #'schedules/imagenet_bs256.py',
     '../_base_/default_runtime.py',
 ]
 
 randomness = dict(seed=0, diff_rank_seed=True) #seed setup
-# train_cfg = dict(
-#     model_wrapper_cfg=dict(
-#         type='MMDistributedDataParallel', find_unused_parameters=True)
-# )
-model_wrapper_cfg = dict(
-                find_unused_parameters=True
-            )
 
 model = dict(
-    backbone=dict(arch='m1'),
+    backbone=dict(arch='m3'),
     head=dict(
-        in_channels=192,
+        in_channels=320,
     ),
-    # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m1.pth')
+    # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m0.pth')
 )
 
 # dataset settings
@@ -37,7 +30,7 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=2048, 
+    batch_size=512,
     dataset=dict(pipeline=train_pipeline)
 )
 val_dataloader = dict(dataset=dict(pipeline=test_pipeline))

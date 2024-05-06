@@ -1,13 +1,12 @@
-# custom_imports = dict(imports=['MixViT'], allow_failed_imports=False)
 # model settings
 model = dict(
     type='ImageClassifier',
     backbone=dict(type='MixViT', arch='m0'),
+    neck=dict(type='GlobalAveragePooling'),
     head=dict(
-        type='EfficientViTClsHead',
-        # type='LinearClsHead',
+        type='MixViTClsHead',
         num_classes=1000,
         in_channels=192,
+        topk=(1, 5),
     ),
-    # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m3.pth')
 )
