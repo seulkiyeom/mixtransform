@@ -20,6 +20,16 @@ from tools.prune_tools.arch_modif import prune_layer
 T0 = 10
 T1 = 60
 
+path = {
+    'm0': None, #m0 pruned model
+    'm1': "work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth", #m1 pruned model
+    'm2': None, #m2 pruned model
+    'm3': None, #m3 pruned model
+    'm4': None, #m0 pruned model
+    'm5': None, #m0 pruned model
+}
+
+
 def compute_throughput_cpu(name, model, device, batch_size, resolution=224):
     inputs = torch.randn(batch_size, 3, resolution, resolution, device=device)
     # warmup
@@ -74,7 +84,6 @@ def load_pruned_model(model, path):
             index_stack += range(checkpoint['backbone.' + name_module + '.weight'].size(0))
             prune_layer(model, name_module, range(checkpoint['backbone.' + name_module + '.weight'].size(0)), both_prune=True)
             prune_FFN = True
-            # checkpoint[name_module + '.weight'].size(0)
 
         elif 'proj' in name_module and isinstance(module, nn.Conv2d) and prune_FFN is True:
             prune_layer(model, name_module, range(len(index_stack)), both_prune=False)
@@ -83,7 +92,6 @@ def load_pruned_model(model, path):
 
     unpruned_indices = _load_checkpoint(path)['unpruned_indices'].copy()
     revise_keys: list = [(r'^backbone.', '')]
-
     for p, r in revise_keys:
         unpruned_indices = OrderedDict(
         {re.sub(p, r, k): v
@@ -129,8 +137,7 @@ if __name__ == '__main__':
             inputs = torch.randn(batch_size, 3, resolution,
                                 resolution, device=device)
             model = MixViT(arch = n)
-            path = "work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth" #m1 pruned 모델
-            load_pruned_model(model, path)
+            load_pruned_model(model, path[n])
 
             # replace_batchnorm(model)
             model.to(device)

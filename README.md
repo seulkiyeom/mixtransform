@@ -1,5 +1,11 @@
 # MixTransform
 
+## Training
+```shell
+bash ./tools/dist_train.sh CONFIG_PATH GPU_NUM
+bash ./tools/dist_train.sh configs/mixvit/mixvit-m1_8xb32_in1k.py 2
+```
+
 ## Pruning + Finetuning
 
 ```shell
@@ -15,7 +21,8 @@ bash ./tools/dist_prune_test.sh configs/mixvit/mixvit-m1_8xb32_in1k.py work_dirs
 
 ## Measure Throughput (image/sec)
 ```shell
-bash ./tools/run_speed.sh
+bash ./tools/run_speed.sh #when running original model
+bash ./tools/run_speed_prune.sh #when running pruned model
 ```
 
 ## Measure FLOPs and Params
