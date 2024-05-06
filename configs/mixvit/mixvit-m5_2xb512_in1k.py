@@ -10,7 +10,7 @@ randomness = dict(seed=0, diff_rank_seed=True) #seed setup
 model = dict(
     backbone=dict(arch='m5'),
     head=dict(
-        in_channels=512,
+        in_channels=384,
     ),
     # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m0.pth')
 )
