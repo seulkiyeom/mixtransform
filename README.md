@@ -31,6 +31,10 @@ python ./tools/analysis_tools/get_flops.py CONFIG_PATH --shape INPUT_SIZE
 python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_8xb32_in1k.py --shape 224
 ```
 
+## How to train several models with multiple jobs (via mmpretrain)
+```bash
+CUDA_VISIBLE_DEVICES=0,1 PORT=29500 ./tools/dist_train.sh ${CONFIG_FILE} 2 #PORT Number can be modifiable
+```
 
 <!-- 
 <div align="center">

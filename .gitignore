@@ -152,3 +152,4 @@ checkpoint
 model_params.txt
 *.ckpt*
 results.txt
+outfile_m0

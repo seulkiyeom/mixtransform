@@ -8,7 +8,7 @@ import mmengine
 from mmengine.config import Config, ConfigDict, DictAction
 from mmengine.evaluator import DumpResults
 from mmengine.registry import RUNNERS
-from .prune_tools.runner_prune import CustomRunner
+from tools.prune_tools.runner_prune import CustomRunner
 
 def parse_args():
     parser = argparse.ArgumentParser(

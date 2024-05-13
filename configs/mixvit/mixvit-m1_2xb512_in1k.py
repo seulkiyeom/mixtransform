@@ -12,7 +12,7 @@ model_wrapper_cfg = dict(
             )
 
 model = dict(
-    backbone=dict(arch='m1'), #, deploy=True), #deploy할때 사용할 것
+    backbone=dict(arch='m1'), #frozen_stages=-1), #, deploy=True), #deploy할때 사용할 것
     head=dict(
         in_channels=192, # deploy=True #deploy할때 사용할 것
     ),
@@ -34,7 +34,7 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=512,
+    batch_size=2048,
     dataset=dict(pipeline=train_pipeline)
 )
 val_dataloader = dict(dataset=dict(pipeline=test_pipeline))
@@ -49,3 +49,11 @@ default_hooks = dict(
         interval=20,
         max_keep_ckpts=3,
         rule='greater'))
+
+# runtime setting (not working)
+# custom_hooks = [dict(type='EMAHook', momentum=4e-5, priority='ABOVE_NORMAL')]
+
+# NOTE: `auto_scale_lr` is for automatically scaling LR
+# based on the actual training batch size.
+# base_batch_size = (2 GPUs) x (2048 samples per GPU)
+auto_scale_lr = dict(base_batch_size=2048)

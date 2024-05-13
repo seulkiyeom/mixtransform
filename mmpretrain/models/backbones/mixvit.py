@@ -158,7 +158,7 @@ class CascadedGroupAttention(BaseModule):
             num_heads=8,
             attn_ratio=4,
             resolution=14,
-            kernels=(1, 3, 5, 8),
+            kernels=(1, 3, 5, 7),
             init_cfg=None
         ):
         super().__init__(init_cfg=init_cfg)
@@ -258,11 +258,11 @@ class CascadedGroupAttention(BaseModule):
             if head_idx > 0:
                 # feat = feat + feats_in[i] #cascading 방식 (with residual connection)
                 feat = feats_in[head_idx] #with residual connection
-            v = vs(feat) if self.d == vs.in_channels else vs(feat[:, vs.in_index])
-            # try:
-            #     v = vs(feat) #????????????????????
-            # except:
-            #     v = vs(feat[:, vs.in_index])
+                
+            if isinstance(vs, nn.Sequential): #if bottleneck is included 
+                v = vs(feat)
+            else:  #normal process (fully-connected or pruned model)
+                v = vs(feat) if self.d == vs.in_channels else vs(feat[:, vs.in_index])
 
             v = v.flatten(2)
 
@@ -318,9 +318,9 @@ class LocalWindowAttention(BaseModule):
     def forward(self, x):
         H = W = self.resolution
         B, C, H_, W_ = x.shape
-        # Only check this for classifcation models
-        assert(H == H_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
-        assert(W == W_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
+        # # Only check this for classifcation models
+        # assert(H == H_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
+        # assert(W == W_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
         if H <= self.window_resolution and W <= self.window_resolution:
             x = self.attn(x)
         else:
@@ -503,6 +503,7 @@ class MixViT(BaseBackbone):
             key_dim=(16, 16, 16),
             down_ops=(('', 1), ('subsample', 2), ('subsample', 2)),
             global_pool='avg',
+            frozen_stages=-1,
             drop_rate=0.,
             deploy=False,
             init_cfg=None
@@ -575,6 +576,11 @@ class MixViT(BaseBackbone):
         if deploy:
             self.switch_to_deploy()
 
+        # freeze stages only when self.frozen_stages > 0
+        self.frozen_stages = frozen_stages
+        if self.frozen_stages > 0:
+            self._freeze_stages()
+
     @torch.jit.ignore
     def no_weight_decay(self):
         return {x for x in self.state_dict().keys() if 'attention_biases' in x}
@@ -604,6 +610,19 @@ class MixViT(BaseBackbone):
         fuse_parameters(self)
         self.deploy = True
 
+    def _freeze_stages(self):
+        if self.frozen_stages >= 0:
+            self.patch_embed.eval()
+            for param in self.patch_embed.parameters():
+                param.requires_grad = False
+
+        for i in range(self.frozen_stages):
+            stage = self.stages[i]
+            stage.eval()
+            for name, param in stage.named_parameters(): #freeze all parameters excluding value module
+                if not any(sub in name for sub in ['attn.mix', 'attn.proj']):
+                    param.requires_grad = False
+
     def forward_features(self, x):
         x = self.patch_embed(x)
         x = self.stages(x)
@@ -618,3 +637,7 @@ class MixViT(BaseBackbone):
         x = self.forward_features(x)
         # x = self.forward_head(x)
         return x
+
+    def train(self, mode=True):
+        super(MixViT, self).train(mode)
+        self._freeze_stages()

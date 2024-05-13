@@ -286,9 +286,9 @@ class LocalWindowAttention(BaseModule):
     def forward(self, x):
         H = W = self.resolution
         B, C, H_, W_ = x.shape
-        # Only check this for classifcation models
-        assert(H == H_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
-        assert(W == W_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
+        # # Only check this for classifcation models
+        # assert(H == H_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
+        # assert(W == W_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
         if H <= self.window_resolution and W <= self.window_resolution:
             x = self.attn(x)
         else:
@@ -567,10 +567,10 @@ class EfficientViT(BaseBackbone):
     def forward_features(self, x):
         x = self.patch_embed(x)
         x = self.stages(x)
-        x = self.flatten(self.global_pool(x))
+        # x = self.flatten(self.global_pool(x))
         out = []
         out.append(x)
-        return out
+        return tuple(out)
 
     # def forward_head(self, x, pre_logits: bool = False):
     #     return x if pre_logits else self.head(x)
