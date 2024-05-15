@@ -3,7 +3,7 @@
 optim_wrapper = dict(
     optimizer=dict(
         type='AdamW',
-        lr=1e-3 * 2048 * 2 / 512,
+        lr=1e-3,
         weight_decay=0.025,
         eps=1e-8,
         betas=(0.9, 0.999)),
@@ -29,7 +29,6 @@ param_scheduler = [
     # main learning rate scheduler
     dict(type='CosineAnnealingLR', eta_min=1e-5, by_epoch=True, begin=5)
 ]
-
 
 # train, val, test setting
 train_cfg = dict(by_epoch=True, max_epochs=300, val_interval=1)

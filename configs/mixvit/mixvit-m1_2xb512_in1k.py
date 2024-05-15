@@ -33,8 +33,8 @@ default_hooks = dict(
         max_keep_ckpts=3,
         rule='greater'))
 
-# runtime setting (not working)
-# custom_hooks = [dict(type='EMAHook', momentum=4e-5, priority='ABOVE_NORMAL')]
+# runtime setting
+custom_hooks = [dict(type='EMAHook', momentum=4e-5, priority='ABOVE_NORMAL')]
 
 # NOTE: `auto_scale_lr` is for automatically scaling LR
 # based on the actual training batch size.
