@@ -13,6 +13,7 @@ optim_wrapper = dict(
         custom_keys={
             '.attention_biases': dict(decay_mult=0.0),
         }),
+    clip_grad=dict(max_norm=5.0),
 )
 
 # learning policy

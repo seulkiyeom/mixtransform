@@ -7,6 +7,10 @@ _base_ = [
 
 randomness = dict(seed=0, diff_rank_seed=True) #seed setup
 
+model_wrapper_cfg = dict(
+                find_unused_parameters=True
+            )
+
 model = dict(
     backbone=dict(arch='m5'),
     head=dict(
@@ -30,8 +34,27 @@ test_pipeline = [
 ]
 
 train_dataloader = dict(
-    batch_size=512,
+    batch_size=2048,
     dataset=dict(pipeline=train_pipeline)
 )
 val_dataloader = dict(dataset=dict(pipeline=test_pipeline))
 test_dataloader = dict(dataset=dict(pipeline=test_pipeline))
+
+
+# runtime settings
+default_hooks = dict(
+    # save last three checkpoints
+    checkpoint=dict(
+        type='CheckpointHook',
+        save_best='auto',
+        interval=20,
+        max_keep_ckpts=3,
+        rule='greater'))
+
+# runtime setting (not working)
+# custom_hooks = [dict(type='EMAHook', momentum=4e-5, priority='ABOVE_NORMAL')]
+
+# NOTE: `auto_scale_lr` is for automatically scaling LR
+# based on the actual training batch size.
+# base_batch_size = (2 GPUs) x (2048 samples per GPU)
+auto_scale_lr = dict(base_batch_size=2048)

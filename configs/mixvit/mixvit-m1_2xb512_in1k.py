@@ -19,26 +19,9 @@ model = dict(
     # init_cfg=dict(type='Pretrained', checkpoint='checkpoints/efficientvit/efficientvit_m1.pth')
 )
 
-# dataset settings
-train_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='EfficientNetRandomCrop', scale=224),
-    dict(type='RandomFlip', prob=0.5, direction='horizontal'),
-    dict(type='PackInputs'),
-]
-
-test_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='EfficientNetCenterCrop', crop_size=224),
-    dict(type='PackInputs'),
-]
-
 train_dataloader = dict(
-    batch_size=2048,
-    dataset=dict(pipeline=train_pipeline)
-)
-val_dataloader = dict(dataset=dict(pipeline=test_pipeline))
-test_dataloader = dict(dataset=dict(pipeline=test_pipeline))
+    batch_size=2048
+    )
 
 # runtime settings
 default_hooks = dict(
