@@ -169,7 +169,8 @@ class CascadedGroupAttention(BaseModule):
         self.attn_ratio = attn_ratio
 
         self.qkvs = ConvBN2d(dim, dim // 2)
-        self.dws = ConvBN2d(dim // 4, dim // 4, kernels[0], 1, kernels[0]//2, groups=dim // 4)
+        # self.dws = ConvBN2d(dim // 4, dim // 4, kernels[0], 1, kernels[0]//2, groups=dim // 4)
+        self.dws = ConvBN2d(dim // 4, dim // 4, max(kernels), 1, max(kernels)//2, groups=dim // 4)
 
         # ks = [1, 3, 5, 5] #Depthwise 방식? 좋지 못한듯 (reuse_depthwise.txt 참고)
         self.split_out_channels = self.split_layer(dim) #Depth-wise Conv 적용 (without Pointwise Conv)
@@ -179,7 +180,8 @@ class CascadedGroupAttention(BaseModule):
             pad = (kernel_size - 1) // 2
             assert self.split_out_channels[idx] == self.d
             #Depthwise Convolution: Spatial feature learning
-            mix.append(torch.nn.Conv2d(self.split_out_channels[idx], self.d, kernel_size=kernel_size, padding=pad, groups=self.d))
+            # mix.append(torch.nn.Conv2d(self.split_out_channels[idx], self.d, kernel_size=kernel_size, padding=pad, groups=self.d))
+            mix.append(ConvBN2d(self.split_out_channels[idx], self.d, kernel_size=kernel_size, padding=pad, groups=self.d))
 
         self.mix = ModuleList(mix)
 
@@ -253,11 +255,9 @@ class CascadedGroupAttention(BaseModule):
         feats_in = x.chunk(self.num_heads, dim=1)
         feats_out = []
 
-        feat = feats_in[0]
         for head_idx, vs in enumerate(self.mix):
-            if head_idx > 0:
-                # feat = feat + feats_in[i] #cascading 방식 (with residual connection)
-                feat = feats_in[head_idx] #with residual connection
+            # feat = feat + feats_in[i] #cascading 방식 (with residual connection)
+            feat = feats_in[head_idx] #with residual connection
                 
             if isinstance(vs, nn.Sequential): #if bottleneck is included 
                 v = vs(feat)
