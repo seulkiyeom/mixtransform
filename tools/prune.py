@@ -250,11 +250,11 @@ class CustomRunner(Runner):
         reader = BottleneckReader(model, criterion, self.train_dataloader, modules.modules(), init_lamb, device, maxflops, targetflops, steps = nb_batches, beta=beta) 
         attribution_score = reader.get_attribution_score()
 
-        # import pickle
-        # # with open('outfile', 'wb') as fp: #when saving
-        # #     pickle.dump(self.best_attribution_score, fp)
-        # with open ('outfile', 'rb') as fp: #when loading
-        #     attribution_score = pickle.load(fp)
+        import pickle
+        # with open('outfile_m0', 'wb') as fp: #when saving
+        #     pickle.dump(self.best_attribution_score, fp)
+        with open ('outfile_m0', 'rb') as fp: #when loading
+            attribution_score = pickle.load(fp)
 
         # select the indexes to preserve
         preserved_indexes_all = select_index_flops(attribution_score, targetflops, reader)
