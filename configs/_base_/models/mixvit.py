@@ -8,8 +8,8 @@ model = dict(
         num_classes=1000,
         in_channels=192,
         topk=(1, 5),
-        loss=dict(type='CrossEntropyLoss', loss_weight=1.0, use_soft=True),
-        # loss=dict(type='LabelSmoothLoss', label_smooth_val=0.1, mode='original'), #안되면 이걸로 수정해볼 것
+        # loss=dict(type='CrossEntropyLoss', loss_weight=1.0, use_soft=True),
+        loss=dict(type='LabelSmoothLoss', label_smooth_val=0.1, mode='original'), #안되면 이걸로 수정해볼 것
     ),
     init_cfg=[
         dict(type='TruncNormal', layer='Linear', std=0.02, bias=0.),

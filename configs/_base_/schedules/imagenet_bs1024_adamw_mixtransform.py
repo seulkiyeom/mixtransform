@@ -1,9 +1,9 @@
 # for batch in each gpu is 256, 8 gpu
-# lr = 5e-4 * 2048 * 2 / 512 = 0.002
+# lr = 1e-3 * 512 * 6 / 512 = 6e-3
 optim_wrapper = dict(
     optimizer=dict(
         type='AdamW',
-        lr=1e-3,
+        lr=6e-3,
         weight_decay=0.025,
         eps=1e-8,
         betas=(0.9, 0.999)),
