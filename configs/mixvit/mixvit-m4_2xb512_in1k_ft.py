@@ -1,9 +1,9 @@
 _base_ = [
-    './mixvit-m3_2xb512_in1k.py',
+    './mixvit-m3_2xb512_in1k_ft.py',
 ]
 
 model = dict(
-    backbone=dict(arch='m5'),
+    backbone=dict(arch='m4'),
     head=dict(
         in_channels=384,
     ),

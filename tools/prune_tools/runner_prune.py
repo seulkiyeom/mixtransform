@@ -3,8 +3,8 @@ import torch.nn as nn
 from typing import Callable, Union
 from collections import OrderedDict
 
-from prune_tools.arch_modif import prune_layer
-from prune_tools.utils import set_in_index_attr_test
+from tools.prune_tools.arch_modif import prune_layer
+from tools.prune_tools.utils import set_in_index_attr_test
 
 from mmengine.model import ModuleList, is_model_wrapper
 from mmengine.runner import Runner

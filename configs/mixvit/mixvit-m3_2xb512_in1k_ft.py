@@ -1,7 +1,8 @@
+#finetuning stage
 _base_ = [
     '../_base_/models/mixvit.py',
     '../_base_/datasets/imagenet_bs64_mixtransform_224.py', #'datasets/imagenet_bs256.py',
-    '../_base_/schedules/imagenet_bs1024_adamw_mixtransform.py',  #'schedules/imagenet_bs256.py',
+    '../_base_/schedules/imagenet_bs1024_adamw_mixtransform_finetune.py',  #'schedules/imagenet_bs256.py',
     '../_base_/default_runtime.py',
 ]
 

@@ -9,8 +9,7 @@ import timm
 # from model.build import EfficientViT_M0, EfficientViT_M1, EfficientViT_M2, EfficientViT_M3, EfficientViT_M4, EfficientViT_M5
 import torchvision
 import utils
-# from mmpretrain.models.backbones import EfficientViT
-from mmpretrain.models.backbones import MixViT
+from mmpretrain.models.backbones import MixViT, EfficientViT
 
 T0 = 10
 T1 = 60
@@ -82,11 +81,11 @@ if __name__ == '__main__':
             compute_throughput = compute_throughput_cuda
 
         for n, batch_size0, resolution in [
-            ('m0', 2048, 224),
-            ('m1', 2048, 224),
-            ('m2', 2048, 224),
-            ('m3', 2048, 224),
-            ('m4', 2048, 224),
+            # ('m0', 2048, 224),
+            # ('m1', 2048, 224),
+            # ('m2', 2048, 224),
+            # ('m3', 2048, 224),
+            # ('m4', 2048, 224),
             ('m5', 2048, 224),
         ]:
 

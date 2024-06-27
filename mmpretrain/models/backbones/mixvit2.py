@@ -159,6 +159,7 @@ class CascadedGroupAttention(BaseModule):
             attn_ratio=4,
             resolution=14,
             kernels=(1, 3, 5, 7),
+            pool_ratio = 2,
             init_cfg=None
         ):
         super().__init__(init_cfg=init_cfg)
@@ -167,10 +168,13 @@ class CascadedGroupAttention(BaseModule):
         self.key_dim = key_dim
         self.d = int(attn_ratio * key_dim)
         self.attn_ratio = attn_ratio
+        self.pool_ratio = pool_ratio
 
-        self.qkvs = ConvBN2d(dim, dim // 2)
+        self.q = ConvBN2d(dim, dim // 4)
+        self.k = ConvBN2d(dim, dim // 4)
         # self.dws = ConvBN2d(dim // 4, dim // 4, kernels[0], 1, kernels[0]//2, groups=dim // 4)
-        self.dws = ConvBN2d(dim // 4, dim // 4, max(kernels), 1, max(kernels)//2, groups=dim // 4)
+        self.dws = ConvBN2d(dim // 4, dim // 4, 3, 1, 3//2, groups=dim // 4)
+        self.pool = nn.AvgPool2d(pool_ratio, pool_ratio)
 
         # ks = [1, 3, 5, 5] #Depthwise 방식? 좋지 못한듯 (reuse_depthwise.txt 참고)
         self.split_out_channels = self.split_layer(dim) #Depth-wise Conv 적용 (without Pointwise Conv)
@@ -192,7 +196,7 @@ class CascadedGroupAttention(BaseModule):
                      bn_weight_init=0))
 
         points = list(
-            itertools.product(range(resolution), range(resolution)))
+            itertools.product(range(resolution), range(resolution//pool_ratio)))
         N = len(points)
         attention_offsets = {}
         idxs = []
@@ -206,7 +210,7 @@ class CascadedGroupAttention(BaseModule):
             torch.zeros(num_heads, len(attention_offsets)))
         self.register_buffer(
             'attention_bias_idxs',
-            torch.LongTensor(idxs).view(N, N),
+            torch.LongTensor(idxs).view(len(range(resolution))**2, len(range(resolution//pool_ratio))**2),
             persistent=False)
         self.attention_bias_cache = {}
 
@@ -242,9 +246,16 @@ class CascadedGroupAttention(BaseModule):
         B, C, H, W = x.shape
         attn_bias = self.get_attention_biases(x.device)
 
-        feat = self.qkvs(x)
-        q, k = feat.view(B, -1, H, W).split([C // 4, C // 4], dim=1) # B, C, H, W
+        #SR for key (세번째 버젼)
+        q = self.q(x).view(B, -1, H, W) # B, C, H, W
+        x = self.pool(x)
+        k = self.k(x).view(B, -1, H//self.pool_ratio, W//self.pool_ratio) # B, C, H, W
         q = self.dws(q)
+
+        # feat = self.qk(x)
+        # q, k = feat.view(B, -1, H, W).split([C // 4, C // 4], dim=1) # B, C, H, W
+        # q = self.dws(q)
+
         q, k = q.flatten(2), k.flatten(2) # B, C, N
 
         q = q * self.scale
@@ -262,6 +273,7 @@ class CascadedGroupAttention(BaseModule):
             if isinstance(vs, nn.Sequential): #if bottleneck is included 
                 v = vs(feat)
             else:  #normal process (fully-connected or pruned model)
+                
                 v = vs(feat) if self.d == vs.in_channels else vs(feat[:, vs.in_index])
 
             v = v.flatten(2)
@@ -277,71 +289,49 @@ class CascadedGroupAttention(BaseModule):
         x = self.proj(torch.cat(feats_out, 1))
         # x = 0.5 * x + 0.5 * x.mean(dim=[2,3], keepdim=True) #Uniform attention
         return x
-        
-class LocalWindowAttention(BaseModule):
-    """ Local Window Attention.
 
-    Args:
-        dim (int): Number of input channels.
-        key_dim (int): The dimension for query and key.
-        num_heads (int): Number of attention heads.
-        attn_ratio (int): Multiplier for the query dim for value dimension.
-        resolution (int): Input resolution.
-        window_resolution (int): Local window resolution.
-        kernels (List[int]): The kernel size of the dw conv on query.
-    """
-    def __init__(
-            self,
-            dim,
-            key_dim,
-            num_heads=8,
-            attn_ratio=4,
-            resolution=14,
-            window_resolution=7,
-            kernels=(5, 5, 5, 5),
-            init_cfg=None
-    ):
-        super().__init__(init_cfg=init_cfg)
-        self.dim = dim
-        self.num_heads = num_heads
-        self.resolution = resolution
-        assert window_resolution > 0, 'window_size must be greater than 0'
-        self.window_resolution = window_resolution
-        window_resolution = min(window_resolution, resolution)
-        self.attn = CascadedGroupAttention(
-            dim, key_dim, num_heads,
-            attn_ratio=attn_ratio,
-            resolution=window_resolution,
-            kernels=kernels,
-        )
+        # #SR for key (두번째 버젼)
+        # q = self.q(x).view(B, -1, H, W) # B, C, H, W
+        # k = self.k(self.pool(x)).view(B, -1, H//self.pool_ratio, W//self.pool_ratio) # B, C, H, W
+        # q = self.dws(q)
 
-    def forward(self, x):
-        H = W = self.resolution
-        B, C, H_, W_ = x.shape
-        # # Only check this for classifcation models
-        # assert(H == H_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
-        # assert(W == W_, f'input feature has wrong size, expect {(H, W)}, got {(H_, W_)}')
-        if H <= self.window_resolution and W <= self.window_resolution:
-            x = self.attn(x)
-        else:
-            x = x.permute(0, 2, 3, 1) #B, H, W, C
-            pad_b = (self.window_resolution - H % self.window_resolution) % self.window_resolution
-            pad_r = (self.window_resolution - W % self.window_resolution) % self.window_resolution
-            x = torch.nn.functional.pad(x, (0, 0, 0, pad_r, 0, pad_b))
+        # # feat = self.qk(x)
+        # # q, k = feat.view(B, -1, H, W).split([C // 4, C // 4], dim=1) # B, C, H, W
+        # # q = self.dws(q)
 
-            pH, pW = H + pad_b, W + pad_r
-            nH = pH // self.window_resolution
-            nW = pW // self.window_resolution
-            # window partition, BHWC -> B(nHh)(nWw)C -> BnHnWhwC -> (BnHnW)hwC -> (BnHnW)Chw
-            x = x.view(B, nH, self.window_resolution, nW, self.window_resolution, C).transpose(2, 3)
-            x = x.reshape(B * nH * nW, self.window_resolution, self.window_resolution, C).permute(0, 3, 1, 2)
-            x = self.attn(x)
-            # window reverse, (BnHnW)Chw -> (BnHnW)hwC -> BnHnWhwC -> B(nHh)(nWw)C -> BHWC
-            x = x.permute(0, 2, 3, 1).view(B, nH, nW, self.window_resolution, self.window_resolution, C)
-            x = x.transpose(2, 3).reshape(B, pH, pW, C)
-            x = x[:, :H, :W].contiguous()
-            x = x.permute(0, 3, 1, 2)
-        return x
+        # q, k = q.flatten(2), k.flatten(2) # B, C, N
+
+        # q = q * self.scale
+        # attn = q.transpose(-2, -1) @ k
+        # attn = attn + attn_bias[0]
+        # attn = attn.softmax(dim=-1)
+
+        # feats_in = x.chunk(self.num_heads, dim=1)
+        # feats_out = []
+
+        # for head_idx, vs in enumerate(self.mix):
+        #     # feat = feat + feats_in[i] #cascading 방식 (with residual connection)
+        #     feat = feats_in[head_idx] #with residual connection
+                
+        #     if isinstance(vs, nn.Sequential): #if bottleneck is included 
+        #         v = vs(self.pool(feat))
+        #     else:  #normal process (fully-connected or pruned model)
+                
+        #         v = vs(self.pool(feat)) if self.d == vs.in_channels else vs(self.pool(feat[:, vs.in_index]))
+
+        #     v = v.flatten(2)
+
+        #     # if self.valuescale:
+        #     #     feat = self.gamma[i] * (v @ attn.transpose(-2, -1)).view(B, -1, H, W) # BCHW
+        #     # else:
+        #         # feat = (v @ attn.transpose(-2, -1)).view(B, self.value_dim, H, W) # BCHW
+        #     feat = (v @ attn.transpose(-2, -1)).view(B, -1, H, W) # BCHW
+
+        #     feats_out.append(feat)
+
+        # x = self.proj(torch.cat(feats_out, 1))
+        # # x = 0.5 * x + 0.5 * x.mean(dim=[2,3], keepdim=True) #Uniform attention
+        # return x
 
 class EfficientVitBlock(torch.nn.Module):
     """ A basic EfficientVit building block.
@@ -371,11 +361,10 @@ class EfficientVitBlock(torch.nn.Module):
         self.ffn0 = ResidualDrop(ConvMlp(dim, int(dim * 2)))
 
         self.mixer = ResidualDrop(
-            LocalWindowAttention(
+            CascadedGroupAttention(
                 dim, key_dim, num_heads,
                 attn_ratio=attn_ratio,
                 resolution=resolution,
-                window_resolution=window_resolution,
                 kernels=kernels,
             )
         )
@@ -445,15 +434,15 @@ def fuse_parameters(module):
 @MODELS.register_module()
 class MixViT(BaseBackbone):
     arch_settings = {
-        'm0': { #ReViT_XS
+        'm0': {
             'img_size': 224,
             'embed_dim': [64, 128, 192],
             'depth': [1, 2, 3],
             'num_heads': [4, 4, 4],
             'window_size': [7, 7, 7],
-            'kernels': [1, 3, 5, 7],
+            'kernels': [1, 3, 5, 7]
         },
-        'm1': { #ReViT_S
+        'm1': {
             'img_size': 224,
             'embed_dim': [128, 144, 192],
             'depth': [1, 2, 3],
@@ -469,7 +458,7 @@ class MixViT(BaseBackbone):
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7]
         },
-        'm3': { #ReViT_M
+        'm3': {
             'img_size': 224,
             'embed_dim': [128, 240, 320],
             'depth': [1, 2, 3],
@@ -485,21 +474,21 @@ class MixViT(BaseBackbone):
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7]
         },
-        'm5': { #ReViT_L
+        'm5': {
             'img_size': 224,
             'embed_dim': [192, 288, 384],
-            'depth': [1, 2, 3],
+            'depth': [1, 3, 4],
             'num_heads': [3, 3, 4],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 1]
+            'kernels': [1, 3, 5, 7]
         },
-        # 'm5': { #원래
-        #     'img_size': 224,
-        #     'embed_dim': [192, 288, 384],
-        #     'depth': [1, 3, 4],
-        #     'num_heads': [3, 3, 4],
-        #     'window_size': [7, 7, 7],
-        #     'kernels': [1, 3, 5, 7]
+        # 'm5': { #수정된 m5
+        # 'img_size': 224,
+        # 'embed_dim': [192, 288, 384],
+        # 'depth': [1, 2, 3],
+        # 'num_heads': [3, 3, 3],  # Head 수를 약간 줄임
+        # 'window_size': [7, 7, 7],
+        # 'kernels': [1, 3, 5]
         # },
     }
 
@@ -508,7 +497,7 @@ class MixViT(BaseBackbone):
             arch = 'm0',
             in_chans=3,
             num_classes=1000,
-            key_dim=(16, 16, 16, 16),
+            key_dim=(16, 16, 16),
             down_ops=(('', 1), ('subsample', 2), ('subsample', 2)),
             global_pool='avg',
             frozen_stages=-1,

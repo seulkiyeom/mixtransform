@@ -22,11 +22,11 @@ T1 = 60
 
 path = {
     'm0': None, #m0 pruned model
-    'm1': "work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth", #m1 pruned model
+    'm1': "checkpoints/classification/mixvit/mixvit_m1_prune.pth", #m1 pruned model
     'm2': None, #m2 pruned model
     'm3': None, #m3 pruned model
     'm4': None, #m0 pruned model
-    'm5': None, #m0 pruned model
+    'm5': "checkpoints/classification/mixvit/mixvit_m5_prune.pth", #m5 pruned model
 }
 
 

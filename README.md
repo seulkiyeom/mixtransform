@@ -16,19 +16,20 @@ bash ./tools/dist_prune.sh configs/mixvit/mixvit-m1_8xb32_in1k.py work_dirs/mixv
 ## Inference with Pruned Model
 ```shell
 bash ./tools/dist_prune_test.sh CONFIG_PATH PRUNED_MODEL_PATH GPU_NUM --pruned
-bash ./tools/dist_prune_test.sh configs/mixvit/mixvit-m1_8xb32_in1k.py work_dirs/mixvit-m1_8xb32_in1k/20240429_162456/best_accuracy_top1_epoch_99.pth 2 --pruned
+bash ./tools/dist_prune_test.sh configs/mixvit/mixvit-m1_8xb32_in1k.py checkpoints/classification/mixvit/mixvit_m1_prune.pth 2 --pruned
 ```
 
 ## Measure Throughput (image/sec)
 ```shell
-bash ./tools/run_speed.sh #when running original model
+bash ./tools/run_speed.sh #when running fully-connected model
 bash ./tools/run_speed_prune.sh #when running pruned model
 ```
 
 ## Measure FLOPs and Params
 ```bash
-python ./tools/analysis_tools/get_flops.py CONFIG_PATH --shape INPUT_SIZE
-python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_8xb32_in1k.py --shape 224
+python ./tools/analysis_tools/get_flops.py CONFIG_PATH CHECKPOINT --shape INPUT_SIZE
+python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_8xb32_in1k.py checkpoints/classification/mixvit/mixvit_m1.pth --shape 224 #with fully-connected model
+python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_8xb32_in1k.py checkpoints/classification/mixvit/mixvit_m1_prune.pth --shape 224 #with pruned model
 ```
 
 ## How to train several models with multiple jobs (via mmpretrain)

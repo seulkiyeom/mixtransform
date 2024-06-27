@@ -1,5 +1,5 @@
 _base_ = [
-    './mixvit-m1_2xb512_in1k.py',
+    './mixvit-m3_2xb512_in1k.py',
 ]
 
 model = dict(
