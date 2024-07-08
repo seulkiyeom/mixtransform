@@ -474,13 +474,21 @@ class MixViT(BaseBackbone):
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7]
         },
-        'm5': {
+        # 'm5': {
+        #     'img_size': 224,
+        #     'embed_dim': [192, 288, 384],
+        #     'depth': [1, 3, 4],
+        #     'num_heads': [3, 3, 4],
+        #     'window_size': [7, 7, 7],
+        #     'kernels': [1, 3, 5, 7]
+        # },
+        'm5': { #ReViT_L
             'img_size': 224,
             'embed_dim': [192, 288, 384],
-            'depth': [1, 3, 4],
+            'depth': [1, 2, 3],
             'num_heads': [3, 3, 4],
             'window_size': [7, 7, 7],
-            'kernels': [1, 3, 5, 7]
+            'kernels': [7, 5, 3, 1]
         },
         # 'm5': { #수정된 m5
         # 'img_size': 224,

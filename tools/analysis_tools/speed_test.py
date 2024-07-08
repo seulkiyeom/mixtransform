@@ -81,12 +81,12 @@ if __name__ == '__main__':
             compute_throughput = compute_throughput_cuda
 
         for n, batch_size0, resolution in [
-            # ('m0', 2048, 224),
+            ('m0', 2048, 224),
             # ('m1', 2048, 224),
             # ('m2', 2048, 224),
-            # ('m3', 2048, 224),
+            # ('m3', 2048, 224), #MixViT_M
             # ('m4', 2048, 224),
-            ('m5', 2048, 224),
+            # ('m5', 2048, 224), #MixViT_L
         ]:
 
             if device == 'cpu':
@@ -97,6 +97,7 @@ if __name__ == '__main__':
             inputs = torch.randn(batch_size, 3, resolution,
                                 resolution, device=device)
             model = MixViT(arch = n)
+            # model = EfficientViT(arch = n)
             # replace_batchnorm(model)
             model.to(device)
             model.eval()

@@ -272,6 +272,10 @@ class CascadedGroupAttention(BaseModule):
                 # feat = (v @ attn.transpose(-2, -1)).view(B, self.value_dim, H, W) # BCHW
             feat = (v @ attn.transpose(-2, -1)).view(B, -1, H, W) # BCHW
 
+            # v = v.view(B, -1, H, W)
+            # feat = (v @ attn.transpose(-2, -1)).view(B, self.d, H, W)
+
+
             feats_out.append(feat)
 
         x = self.proj(torch.cat(feats_out, 1))
@@ -327,7 +331,8 @@ class LocalWindowAttention(BaseModule):
             x = x.permute(0, 2, 3, 1) #B, H, W, C
             pad_b = (self.window_resolution - H % self.window_resolution) % self.window_resolution
             pad_r = (self.window_resolution - W % self.window_resolution) % self.window_resolution
-            x = torch.nn.functional.pad(x, (0, 0, 0, pad_r, 0, pad_b))
+            x = torch.nn.functional.pad(x, (0, pad_r, 0, pad_b))
+            # x = torch.nn.functional.pad(x, (0, 0, 0, pad_r, 0, pad_b))
 
             pH, pW = H + pad_b, W + pad_r
             nH = pH // self.window_resolution
@@ -448,7 +453,7 @@ class MixViT(BaseBackbone):
         'm0': { #ReViT_XS
             'img_size': 224,
             'embed_dim': [64, 128, 192],
-            'depth': [1, 2, 3],
+            'depth': [1, 2, 2],
             'num_heads': [4, 4, 4],
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7],
@@ -456,19 +461,19 @@ class MixViT(BaseBackbone):
         'm1': { #ReViT_S
             'img_size': 224,
             'embed_dim': [128, 144, 192],
-            'depth': [1, 2, 3],
-            'num_heads': [2, 3, 3],
+            'depth': [1, 2, 2],
+            'num_heads': [4, 4, 4],
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7]
         },
-        'm2': {
-            'img_size': 224,
-            'embed_dim': [128, 192, 224],
-            'depth': [1, 2, 3],
-            'num_heads': [4, 3, 2],
-            'window_size': [7, 7, 7],
-            'kernels': [1, 3, 5, 7]
-        },
+        # 'm2': {
+        #     'img_size': 224,
+        #     'embed_dim': [128, 192, 224],
+        #     'depth': [1, 2, 3],
+        #     'num_heads': [4, 3, 2],
+        #     'window_size': [7, 7, 7],
+        #     'kernels': [1, 3, 5, 7]
+        # },
         'm3': { #ReViT_M
             'img_size': 224,
             'embed_dim': [128, 240, 320],
@@ -477,21 +482,29 @@ class MixViT(BaseBackbone):
             'window_size': [7, 7, 7],
             'kernels': [1, 3, 5, 7]
         },
-        'm4': {
-            'img_size': 224,
-            'embed_dim': [128, 256, 384],
-            'depth': [1, 2, 3],
-            'num_heads': [4, 4, 4],
-            'window_size': [7, 7, 7],
-            'kernels': [1, 3, 5, 7]
-        },
+        # 'm3': { #기존
+        #     'img_size': 224,
+        #     'embed_dim': [128, 240, 320],
+        #     'depth': [1, 2, 3],
+        #     'num_heads': [4, 3, 4],
+        #     'window_size': [7, 7, 7],
+        #     'kernels': [1, 3, 5, 7]
+        # },
+        # 'm4': {
+        #     'img_size': 224,
+        #     'embed_dim': [128, 256, 384],
+        #     'depth': [1, 2, 3],
+        #     'num_heads': [4, 4, 4],
+        #     'window_size': [7, 7, 7],
+        #     'kernels': [1, 3, 5, 7]
+        # },
         'm5': { #ReViT_L
             'img_size': 224,
             'embed_dim': [192, 288, 384],
             'depth': [1, 2, 3],
             'num_heads': [3, 3, 4],
             'window_size': [7, 7, 7],
-            'kernels': [7, 5, 3, 1]
+            'kernels': [1, 3, 5, 7]
         },
         # 'm5': { #원래
         #     'img_size': 224,
