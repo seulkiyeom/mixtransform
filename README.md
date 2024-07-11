@@ -32,10 +32,27 @@ python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_
 python ./tools/analysis_tools/get_flops.py configs/efficientvit/efficientvit-m1_8xb32_in1k.py checkpoints/classification/mixvit/mixvit_m1_prune.pth --shape 224 #with pruned model
 ```
 
+## Onnx Model Conversion
+Please first install **mmdeploy** in the parent folder and run.
+```bash
+python PATH/TO/deploy.py ${DEPLOY_CONFIG} ${MODEL_CONFIG} ${CHECKPOINT} ${IMAGE_FILE} [--work-dir ${SAVE_FOLDER_NAME}] [--device ${DEVICE_NAME}] [--dump-info]
+```
+Example: Deploy ```MixViT-L``` on ImageNet classification into ONNX model: 
+```bash
+python mmdeploy/tools/deploy.py mmdeploy/configs/mmpretrain/classification_onnxruntime_static-224x224.py mixvit/classification/configs/mixvit/mixvit-l_2xb512_in1k.py ../checkpoints/classification/mixvit/mixvit_l.pth mixvit/classification/demo/demo.JPEG --work-dir mmdeploy_model/mixvit_l_onnx --device cuda --dump-info
+```
+
+Example: Deploy ```MixViT-L``` on Object detection into ONNX model: 
+```bash
+python mmdeploy/tools/deploy.py mmdeploy/configs/mmpretrain/classification_onnxruntime_static-224x224.py mixvit/classification/configs/mixvit/mixvit-l_2xb512_in1k.py ../checkpoints/classification/mixvit/mixvit_l.pth mixvit/classification/demo/demo.JPEG --work-dir mmdeploy_model/mixvit_l_onnx --device cuda --dump-info
+```
+
 ## How to train several models with multiple jobs (via mmpretrain)
 ```bash
 CUDA_VISIBLE_DEVICES=0,1 PORT=29500 ./tools/dist_train.sh ${CONFIG_FILE} 2 #PORT Number can be modifiable
 ```
+
+
 
 <!-- 
 <div align="center">
