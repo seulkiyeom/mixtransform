@@ -9,7 +9,8 @@ import timm
 # from model.build import EfficientViT_M0, EfficientViT_M1, EfficientViT_M2, EfficientViT_M3, EfficientViT_M4, EfficientViT_M5
 import torchvision
 import utils
-from mmpretrain.models.backbones import MixViT, EfficientViT
+from mmpretrain.models.backbones import MixViT
+from mmpretrain.models.backbones import MlpMixer, RepVGG
 
 T0 = 10
 T1 = 60
@@ -96,8 +97,10 @@ if __name__ == '__main__':
                 torch.cuda.empty_cache()
             inputs = torch.randn(batch_size, 3, resolution,
                                 resolution, device=device)
-            model = MixViT(arch = n)
+            # model = MixViT(arch = n)
             # model = EfficientViT(arch = n)
+            model = RepVGG(arch = 'A2') #A0, A1, B0, A2
+            model.switch_to_deploy()
             # replace_batchnorm(model)
             model.to(device)
             model.eval()

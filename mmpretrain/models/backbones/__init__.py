@@ -60,6 +60,7 @@ from .vit_sam import ViTSAM
 from .xcit import XCiT
 from .efficientvit import EfficientViT
 from .mixvit import MixViT
+from .mixvit2 import MixViT_tf
 
 __all__ = [
     'LeNet5',
@@ -129,5 +130,6 @@ __all__ = [
     'SparseResNet',
     'SparseConvNeXt',
     'EfficientViT',
-    'MixViT'
+    'MixViT',
+    'MixViT_tf'
 ]
