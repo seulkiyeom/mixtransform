@@ -1,6 +1,6 @@
 _base_ = [\
-    '../../_base_/models/mixvit_ml.py',
-    '../../_base_/datasets/cifar100_bs16.py',
+    '../../_base_/models/mixvit_ds.py',
+    '../../_base_/datasets/cifar100_bs16_224.py',
     '../../_base_/schedules/cifar10_bs128.py',
     '../../_base_/default_runtime.py',
 ]
@@ -12,12 +12,17 @@ model_wrapper_cfg = dict(
             )
 
 model = dict(
-    backbone=dict(type='MixViT_tf', arch='m5'), #frozen_stages=-1), #, deploy=True), #deploy할때 사용할 것
+    backbone=dict(type='MixViT_tf', 
+                  arch='m5',
+                  init_cfg=dict(type='Pretrained', 
+                  checkpoint='checkpoints/mixvit_m5.pth', 
+                  prefix='backbone.'),
+                  frozen_stages=-1
+                  ), #, deploy=True), #deploy할때 사용할 것
     head=dict(
         num_classes=100,
         in_channels=384, # deploy=True #deploy할때 사용할 것
     ),
-    init_cfg=dict(_delete_=True, type='Pretrained', checkpoint='checkpoints/mixvit_m5.pth')
 )
 
 train_dataloader = dict(
